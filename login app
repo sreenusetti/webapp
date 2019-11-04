@@ -1,0 +1,254 @@
+DB Connection
+===========
+package com.app;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+
+public class DBConnection {
+
+	public static Connection createConnection()
+	{
+		Connection con = null;
+		String url = "jdbc:mysql://localhost:3306/online"; //MySQL URL and followed by the database name
+		String username = "root"; //MySQL username
+		String password = "root"; //MySQL password
+
+		try 
+		{
+			try 
+			{
+				Class.forName("com.mysql.jdbc.Driver"); //loading mysql driver 
+			} 
+			catch (ClassNotFoundException e)
+			{
+				e.printStackTrace();
+			} 
+			con = DriverManager.getConnection(url, username, password); //attempting to connect to MySQL database
+			System.out.println("Printing connection object "+con);
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+		return con; 
+	}
+}
+=================================================================
+LoginDao
+========
+package com.app;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class LoginDao {
+	public String authenticateUser(User u)
+	{
+
+		String userName = u.getUsername();
+		String password = u.getPassword();
+
+		Connection con = null;
+		Statement statement = null;
+		ResultSet resultSet = null;
+
+		String userNameDB = "";
+		String passwordDB = "";
+
+		try
+		{
+			con = DBConnection.createConnection();
+			statement = con.createStatement(); 
+			resultSet = statement.executeQuery("select userName,password from users"); 
+
+			while(resultSet.next()) 
+			{
+				userNameDB = resultSet.getString("userName"); 
+				passwordDB = resultSet.getString("password");
+
+
+				if(userName.equals(userNameDB) && password.equals(passwordDB))
+				{
+					return "SUCCESS";
+				}
+			}}
+		catch(SQLException e)
+		{
+			e.printStackTrace();
+		}
+		return "Invalid user credentials"; 
+	}
+}
+========================================================
+Login Servlet
+=============
+package com.app;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+public class LoginServlet extends HttpServlet {
+
+	public LoginServlet(){}
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+		String userName = request.getParameter("username");
+		String password = request.getParameter("password");
+		User u=new  User();
+		u.setUsername(userName);
+		u.setPassword(password);
+		LoginDao loginDao = new LoginDao();
+		String userValidate1 = loginDao.authenticateUser(u); 
+
+		String userValidate2 = loginDao.authenticateUser(u); //Calling authenticateUser function
+		if(userValidate1.equals("SUCCESS")) //If function returns success string then user will be rooted to Home page
+		{
+			request.setAttribute("userName", userName); //with setAttribute() you can define a "key" and value pair so that you can get it in future using getAttribute("key")
+			request.getRequestDispatcher("/Home.jsp").forward(request, response);//RequestDispatcher is used to send the control to the invoked page.
+		}
+		else
+		{
+			request.setAttribute("errMessage", userValidate2); //If authenticateUser() function returnsother than SUCCESS string it will be sent to Login page again. Here the error message returned from function has been stored in a errMessage key.
+			request.getRequestDispatcher("/Login.jsp").forward(request, response);//forwarding the request
+		}
+	}
+}
+
+==================================================================
+User class
+======================
+package com.app;
+
+public class User {
+	private String username;
+	private String password;
+	public User() {
+		super();
+	}
+	public String getUsername() {
+		return username;
+	}
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+	@Override
+	public String toString() {
+		return "User [username=" + username + ", password=" + password + "]";
+	}
+	
+
+}
+===========================================================
+pom.xml
+===============================================
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.app</groupId>
+	<artifactId>LoginWebApp</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>war</packaging>
+
+	<name>LoginWebApp Maven Webapp</name>
+	<!-- FIXME change it to the project's website -->
+	<url>http://www.example.com</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<maven.compiler.target>1.7</maven.compiler.target>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>servlet-api</artifactId>
+			<version>2.4</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.31</version>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<finalName>LoginWebApp</finalName>
+
+	</build>
+</project>
+====================================================
+Home.jsp
+=================
+<html>
+<head><h2>Home Page</h2></head>
+<body>
+<%--  <center><h2>Home Page</h2></center>
+ Welcome <%=request.getAttribute("userName") %> <!-- Refer to the video to understand how this works -->
+ <div style="text-align: right"><a href="LogoutServlet">Logout</a></div>
+  --%>
+ 
+ <form action="LoginServlet" method="post" onsubmit="return validate()"> 
+ <pre>
+ UserName:<input type="text" name="username"/>
+ Password:<input type="password" name="password"/>
+          <input type="submit" value="Login"/>
+  
+ </pre>
+ </form>
+</body>
+</html>
+==========================================================================
+Login.jsp
+========================================
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Login Page</title>
+</head>
+<body>
+ <center><h2>Home Page</h2></center>
+ Welcome <%=request.getAttribute("userName") %> <!-- Refer to the video to understand how this works -->
+ <div style="text-align: right"><a href="LogoutServlet">Logout</a></div>
+ 
+
+<!-- <form action="LoginServlet" method="post" onsubmit="return validate()"> 
+ <pre>
+ UserName:<input type="text" name="username"/>
+ Password:<input type="password" name="password"/>
+          <input type="submit" value="Login"/>
+  
+ </pre> 
+</form> -->
+</body>
+</html>
+============================================================
+
+
