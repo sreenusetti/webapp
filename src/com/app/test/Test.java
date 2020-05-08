@@ -1,6 +1,5 @@
 /*package com.app;
 
-
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.MailSender;
